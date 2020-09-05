@@ -19,3 +19,4 @@ graphviz
 unzip
 pandoc
 openjdk-8-jdk
+cmake

@@ -72,6 +72,16 @@ COPY --chown=${UNAME}:${UNAME} ./files/jupyterlab-extensions.txt .tmp/
 RUN cat .tmp/jupyterlab-extensions.txt | tr '\n' ' ' > .tmp/tmplist && \
    jupyter labextension install `cat .tmp/tmplist`
 
+#install Lightgbm
+RUN git clone --recursive https://github.com/microsoft/LightGBM 
+RUN mkdir -p LightGBM/build
+WORKDIR /home/${UNAME}/LightGBM/build
+RUN cmake ..
+RUN make -j4
+WORKDIR /home/${UNAME}/LightGBM/python-package
+RUN python setup.py install
+WORKDIR /home/${UNAME}
+
 #install ML library
 COPY --chown=${UNAME}:${UNAME} ./files/conda-requirements.txt ./files/pip-requirements.txt ./files/anaconda-requirements.txt ./files/conda-pytorch.txt .tmp/
 #RUN conda install -c pytorch --file .tmp/conda-pytorch.txt
