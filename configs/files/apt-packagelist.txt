@@ -15,8 +15,9 @@ htop
 mercurial 
 subversion 
 openssh-server 
-graphviz
+#graphviz
 unzip
 pandoc
-openjdk-8-jdk
+#openjdk-8-jdk
 cmake
+libssl-dev

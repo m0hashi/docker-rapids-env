@@ -3,3 +3,4 @@
 @axlair/jupyterlab_vim
 @jupyter-widgets/jupyterlab-manager
 @jupyterlab/debugger
+jupyterlab_templates

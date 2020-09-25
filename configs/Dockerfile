@@ -1,9 +1,7 @@
 #================================================================================
 # Make conda base environment
 #================================================================================
-#FROM pytorch/pytorch:1.4-cuda10.1-cudnn7-devel as pytorch-base
-#FROM ubuntu:20.04 as anaconda-base
-FROM tensorflow/tensorflow:2.2.0-gpu as anaconda-base
+FROM rapidsai/rapidsai-dev:0.15-cuda10.1-devel-ubuntu18.04-py3.7 as anaconda-base
 SHELL ["/bin/bash", "-c"]
 
 #eNV TZ Asia/Tokyo
@@ -31,28 +29,19 @@ ARG UID
 ARG UPASSWD
 
 RUN groupadd  ${UNAME} -g ${GID}
-RUN chgrp -R ${UNAME} /opt/ && \
-    chmod 770 -R /opt/
 #Add user
 RUN echo ${UNAME} ${GID} && \
     useradd -u ${UID} -g ${UNAME} -m ${UNAME} --create-home --shel /bin/bash && \
     usermod -aG sudo ${UNAME} && \
     echo "Set disable_coredump false" >> /etc/sudo.conf && \
     echo ${UNAME}:${UPASSWD} | chpasswd
+
 USER ${UNAME}
 WORKDIR /home/${UNAME}
 
-#Install Anaconda
-ENV PATH /opt/conda/bin:$PATH
-RUN wget --quiet https://repo.anaconda.com/archive/Anaconda3-2020.02-Linux-x86_64.sh -O ~/anaconda.sh && \
-    bash ~/anaconda.sh -b -p  /opt/conda && \
-    rm ~/anaconda.sh && \
-    echo "PATH=/opt/conda/bin/:$PATH" >> ~/.bashrc && \
-    echo ". /opt/conda/etc/profile.d/conda.sh" >> ~/.bashrc && \
-    echo "conda activate base" >> ~/.bashrc && \
-    find /opt/conda/ -follow -type f -name '*.a' -delete && \
-    find /opt/conda/ -follow -type f -name '*.js.map' -delete && \
-    /opt/conda/bin/conda clean -afy
+RUN echo "export PATH=/opt/conda/bin/:$PATH" >> /home/${UNAME}/.bashrc &&\
+    echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/${UNAME}/.bashrc &&\
+    echo "conda activate rapids" >> /home/${UNAME}/.bashrc
 
 RUN echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64' >> ~/.bashrc
 #================================================================================
@@ -62,15 +51,21 @@ FROM anaconda-base as dlenv-base
 
 
 ARG UNAME
-#install jupyter lab extensions
-#for  details, see -> https://qiita.com/canonrock16/items/d166c93087a4aafd2db4
-RUN conda update conda
-#RUN source ~/.bashrc && conda install -c conda-forge jupyterlab
+
+#activate conda rapids as a new shell
+#https://pythonspeed.com/articles/activate-conda-dockerfile/
+SHELL ["conda", "run", "-n","rapids","/bin/bash", "-c"]
+RUN conda install -c anaconda pip
+RUN conda info -e
+RUN pwd
 RUN pip install --no-cache-dir jupyterlab==2.1.4
 
 COPY --chown=${UNAME}:${UNAME} ./files/jupyterlab-extensions.txt .tmp/
-RUN cat .tmp/jupyterlab-extensions.txt | tr '\n' ' ' > .tmp/tmplist && \
-   jupyter labextension install `cat .tmp/tmplist`
+RUN cat .tmp/jupyterlab-extensions.txt | tr '\n' ' ' > .tmp/tmplist
+RUN ls .tmp/
+RUN jupyter labextension install `cat .tmp/tmplist`
+#RUN cat .tmp/jupyterlab-extensions.txt | tr '\n' ' ' > .tmp/tmplist && \
+#   jupyter labextension install `cat .tmp/tmplist`
 
 #install Lightgbm
 RUN git clone --recursive https://github.com/microsoft/LightGBM 
@@ -86,9 +81,10 @@ WORKDIR /home/${UNAME}
 COPY --chown=${UNAME}:${UNAME} ./files/conda-requirements.txt ./files/pip-requirements.txt ./files/anaconda-requirements.txt ./files/conda-pytorch.txt .tmp/
 #RUN conda install -c pytorch --file .tmp/conda-pytorch.txt
 RUN pip install --no-cache-dir torch==1.5.0+cu101 torchvision==0.6.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
-RUN conda install -c conda-forge --file .tmp/conda-requirements.txt && \
-    conda install -c Anaconda --file .tmp/anaconda-requirements.txt && \
-    conda clean --all 
+
+RUN conda install -c conda-forge --file .tmp/conda-requirements.txt 
+#RUN    conda install -c Anaconda --file .tmp/anaconda-requirements.txt 
+RUN conda clean --all 
 RUN pip install --no-cache-dir -r .tmp/pip-requirements.txt
 
 #================================================================================
@@ -113,10 +109,13 @@ RUN mkdir ~/.local && \
 COPY --chown=${UNAME}:${UNAME} ./files/docker-entrypoint.sh /home/${UNAME}/.local/bin/docker-entrypoint.sh
 COPY --chown=${UNAME}:${UNAME} ./files/.gitconfig /home/${UNAME}/
 
+RUN echo ". /opt/conda/etc/profile.d/conda.sh" >> /home/${UNAME}/.bashrc &&\
+    echo "conda activate rapids" >> /home/${UNAME}/.bashrc
+
 USER root
 RUN echo "PATH=/opt/conda/bin/:$PATH" >> /root/.bashrc && \
     echo ". /opt/conda/etc/profile.d/conda.sh" >> /root/.bashrc && \
-    echo "conda activate base" >> /root/bashrc 
+    echo "conda activate rapids" >> /root/bashrc 
 RUN echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/cuda/extras/CUPTI/lib64' >> /root/.bashrc
 
 RUN chown ${UNAME}:${UNAME} /home/${UNAME}/.gitconfig /home/${UNAME}/.local/bin/docker-entrypoint.sh && \

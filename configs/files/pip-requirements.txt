@@ -16,3 +16,8 @@ catboost
 tensorflow_datasets
 pydot
 pyarrow
+optuna
+factor_analyzer
+python-dotenv
+jupyterlab_templates
+pathlib2

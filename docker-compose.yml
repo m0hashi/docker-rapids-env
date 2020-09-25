@@ -1,7 +1,7 @@
 version: '2.4'
 
 services:
-  dl-env:
+  rapids-env:
     env_file: .env
     build:
       context: ./configs
@@ -13,7 +13,7 @@ services:
         UPASSWD: ${UPASSWD}
         SSHPORT: ${SSHPORT}
     runtime: nvidia
-    container_name: dl-env
+    container_name: rapids-env
     privileged: true
     environment: 
     - NVIDIA_VISIBLE_DEVICES=all
