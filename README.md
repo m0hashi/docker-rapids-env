@@ -2,7 +2,15 @@
 This docker image creates an ssh-connectable Jupyter Lab server on a workstation.
 It is based on anaconda.
 
-## Build 
+## make prerequisite environment
+You will need to install docker-compose and nvidia-docker2 as a prerequisite.
+You can create these environments with the script below.
+```sh
+sudo bash install_docker.sh
+sudo bash nvidia_docker_setup.sh
+```
+
+## how to use 
 After you have cloned this repository, run the following commands, and then the built container will start.
 
 ```sh
